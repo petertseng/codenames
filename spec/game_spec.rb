@@ -67,7 +67,7 @@ RSpec.describe Codenames::Game do
       # We can't make assumptions about which team the player lands on.
 
       it 'makes the player a hinter' do
-        expect(game.teams).to be_any { |team| team.hinters.include?(preferring_user) }
+        expect(game.role_of(preferring_user)).to be == :hint
       end
     end
 
@@ -101,9 +101,7 @@ RSpec.describe Codenames::Game do
       # We can't make assumptions about which teams the players land on.
 
       it 'makes the players hinters' do
-        expect(preferring_users).to be_all { |p|
-          game.teams.any? { |team| team.hinters.include?(p) }
-        }
+        expect(preferring_users).to be_all { |p| game.role_of(p) == :hint }
       end
     end
 

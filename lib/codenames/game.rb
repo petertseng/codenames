@@ -193,6 +193,11 @@ module Codenames; class Game
   # Game state getters
   #----------------------------------------------
 
+  def role_of(user)
+    player = find_player(user)
+    player && player.role
+  end
+
   def team_preferences
     @players.group_by(&:team_preference).map { |team, players|
       [team, players.map(&:user)]
