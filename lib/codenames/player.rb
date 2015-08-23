@@ -1,3 +1,7 @@
+# Player helps keeps track of User => team/role mappings.
+#
+# This should be used internally only, never returned from any Game method.
+# This is because I don't want people messing with the accessors.
 module Codenames; class Player
   attr_accessor :user
   attr_reader :team, :role
