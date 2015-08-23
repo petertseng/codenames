@@ -21,7 +21,7 @@ module Codenames; class Game
   TOTAL_TEAM_WORDS = TEAM_WORDS.inject(0, :+)
   NEUTRAL_WORDS = WORDS_PER_GAME - TOTAL_TEAM_WORDS - ASSASSIN_WORDS
 
-  attr_reader :id, :channel_name, :started, :start_time
+  attr_reader :id, :channel_name, :started, :start_time, :turn_number
   attr_reader :teams
   attr_reader :current_team, :current_phase, :current_hint, :guesses_remaining
   attr_reader :winning_team
@@ -50,6 +50,7 @@ module Codenames; class Game
     @words = {}
     @scores = Array.new(NUM_TEAMS, 0)
 
+    @turn_number = 0
     @current_team = 0
     @current_phase = :setup
     @current_hint = nil
@@ -255,6 +256,7 @@ module Codenames; class Game
       assignment[:guess].role = :guess
       assignment[:guess].team = :both
       # They can skip the hinter selection.
+      @turn_number = 1
       @current_phase = :hint
     else
       success, assignment_or_err = self.class.assignments(@players)
@@ -392,7 +394,10 @@ module Codenames; class Game
     @hinters_chosen[player.team] = true
     player.role = :hint
     @players.select { |p| p.on_team?(player.team) && p != player }.each { |p| p.role = :guess }
-    @current_phase = :hint if @hinters_chosen.all?
+    if @hinters_chosen.all?
+      @current_phase = :hint
+      @turn_number = 1
+    end
   end
 
   def check_victory
@@ -408,6 +413,7 @@ module Codenames; class Game
 
   def stop_guess_phase
     raise "Game #{@channel_name} not in guess phase" unless @current_phase == :guess
+    @turn_number += 1
     @current_team = other_team
     @current_phase = :hint
     @current_hint = nil
