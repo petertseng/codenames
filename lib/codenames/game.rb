@@ -24,9 +24,11 @@ module Codenames; class Game
   attr_reader :id, :channel_name, :started, :start_time, :turn_number
   attr_reader :teams
   attr_reader :current_team, :current_phase, :current_hint, :guesses_remaining
+  attr_reader :guessed_this_turn
   attr_reader :winning_team
 
   alias :started? :started
+  alias :guessed_this_turn? :guessed_this_turn
 
   class << self
     attr_accessor :games_created
