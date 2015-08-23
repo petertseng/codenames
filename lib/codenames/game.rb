@@ -277,6 +277,7 @@ module Codenames; class Game
     @started = true
     [true, nil]
   end
+  alias :start_game :start
 
   # Returns [false, error_sym] or [true, Boolean(everyone_chose?)]
   def choose_hinter(user, random: false)
