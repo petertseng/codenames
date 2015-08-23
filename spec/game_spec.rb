@@ -177,6 +177,10 @@ RSpec.describe Codenames::Game do
         preferring_users.each { |user, i| game.prefer_team(user, 0) }
       end
 
+      it 'shows preferences' do
+        expect(game.team_preferences[0].size).to be == 3
+      end
+
       it 'does not start the game' do
         success, _ = game.start(example_words)
         expect(success).to be false

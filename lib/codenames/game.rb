@@ -186,6 +186,12 @@ module Codenames; class Game
   # Game state getters
   #----------------------------------------------
 
+  def team_preferences
+    @players.group_by(&:team_preference).map { |team, players|
+      [team, players.map(&:user)]
+    }.to_h
+  end
+
   def teams
     teams = (0...NUM_TEAMS).map { |i| @players.select { |p| p.on_team?(i) } }
     teams.map { |players| players.map { |p| [p.user, p.role] }.to_h }
