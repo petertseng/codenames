@@ -34,14 +34,14 @@ RSpec.describe Codenames::Game do
       end
 
       it 'has distinct hinters' do
-        expect(game.teams).to be_all { |team| team.values.include?(:hint) }
-        hinters = game.teams.map { |team| team.find { |_, role| role == :hint }[0] }
+        expect(game.teams).to be_all(&:picked_roles?)
+        hinters = game.teams.map(&:hinters)
         expect(hinters[0]).to_not be == hinters[1]
       end
 
       it 'has one guesser' do
-        expect(game.teams).to be_all { |team| team.values.include?(:guess) }
-        guessers = game.teams.map { |team| team.find { |_, role| role == :guess }[0] }
+        expect(game.teams).to be_all(&:picked_roles?)
+        guessers = game.teams.map(&:guessers)
         expect(guessers[0]).to be == guessers[1]
       end
 
@@ -67,7 +67,7 @@ RSpec.describe Codenames::Game do
       # We can't make assumptions about which team the player lands on.
 
       it 'makes the player a hinter' do
-        expect(game.teams).to be_any { |team| team[preferring_user] == :hint }
+        expect(game.teams).to be_any { |team| team.hinters.include?(preferring_user) }
       end
     end
 
@@ -102,7 +102,7 @@ RSpec.describe Codenames::Game do
 
       it 'makes the players hinters' do
         expect(preferring_users).to be_all { |p|
-          game.teams.any? { |team| team[p] == :hint }
+          game.teams.any? { |team| team.hinters.include?(p) }
         }
       end
     end
@@ -130,7 +130,7 @@ RSpec.describe Codenames::Game do
       end
 
       it 'has no roles' do
-        expect(game.teams).to be_all { |team| team.values.all?(&:nil?) }
+        expect(game.teams).to_not be_any(&:picked_roles?)
       end
 
       it 'is time to choose a hinter' do
@@ -191,7 +191,7 @@ RSpec.describe Codenames::Game do
   context 'when choosing hinters' do
     let(:game) { example_game(4) }
     before(:each) { game.start(example_words) }
-    let(:hinters) { game.teams.map(&:keys).map(&:first) }
+    let(:hinters) { game.teams.map(&:users).map(&:first) }
 
     it 'disallows hints' do
       success, _ = game.hint(hinters.first, 'hi', 1)
@@ -210,15 +210,15 @@ RSpec.describe Codenames::Game do
 
     shared_examples 'the first team chose a hinter' do
       it 'gives that team a hinter' do
-        expect(game.teams.first.values).to include(:hint)
+        expect(game.teams.first.hinters).to_not be_empty
       end
 
       it 'gives that team a guesser' do
-        expect(game.teams.first.values).to include(:guess)
+        expect(game.teams.first.guessers).to_not be_empty
       end
 
       it 'does not touch the other team' do
-        expect(game.teams.last.values).to be_all(&:nil?)
+        expect(game.teams.last).to_not be_picked_roles
       end
 
       it 'still wants the other team to pick' do
@@ -247,11 +247,11 @@ RSpec.describe Codenames::Game do
       before(:each) { hinters.each { |hinter| game.choose_hinter(hinter) } }
 
       it 'gives both teams hinters' do
-        expect(game.teams).to be_all { |team| team.values.include?(:hint) }
+        expect(game.teams).to_not be_any { |team| team.hinters.empty? }
       end
 
       it 'gives both teams guessers' do
-        expect(game.teams).to be_all { |team| team.values.include?(:guess) }
+        expect(game.teams).to_not be_any { |team| team.guessers.empty? }
       end
 
       it 'is time to give a hint' do
@@ -262,9 +262,9 @@ RSpec.describe Codenames::Game do
 
   context 'when giving hints' do
     let(:game) { example_game(4) }
-    let(:hinters) { game.teams.map(&:keys).map(&:first) }
+    let(:hinters) { game.teams.map(&:users).map(&:first) }
     let(:hinter) { hinters.first }
-    let(:guessers) { game.teams.map(&:keys).map(&:last) }
+    let(:guessers) { game.teams.map(&:users).map(&:last) }
     before(:each) {
       game.start(example_words)
       hinters.each { |hinter| game.choose_hinter(hinter) }
@@ -357,8 +357,8 @@ RSpec.describe Codenames::Game do
 
   context 'when guessing' do
     let(:game) { example_game(4) }
-    let(:hinters) { game.teams.map(&:keys).map(&:first) }
-    let(:guessers) { game.teams.map(&:keys).map(&:last) }
+    let(:hinters) { game.teams.map(&:users).map(&:first) }
+    let(:guessers) { game.teams.map(&:users).map(&:last) }
     let(:guesser) { guessers.first }
     before(:each) {
       game.start(example_words)
@@ -462,8 +462,8 @@ RSpec.describe Codenames::Game do
 
   describe 'winning the game by finding all words' do
     let(:game) { example_game(4) }
-    let(:hinters) { game.teams.map(&:keys).map(&:first) }
-    let(:guessers) { game.teams.map(&:keys).map(&:last) }
+    let(:hinters) { game.teams.map(&:users).map(&:first) }
+    let(:guessers) { game.teams.map(&:users).map(&:last) }
     let(:guesser) { guessers.first }
     before(:each) {
       game.start(example_words)

@@ -1,4 +1,5 @@
 require_relative 'player'
+require_relative 'team'
 require_relative 'word'
 
 module Codenames
@@ -21,6 +22,7 @@ module Codenames; class Game
   NEUTRAL_WORDS = WORDS_PER_GAME - TOTAL_TEAM_WORDS - ASSASSIN_WORDS
 
   attr_reader :id, :channel_name, :started, :start_time
+  attr_reader :teams
   attr_reader :current_team, :current_phase, :current_hint, :guesses_remaining
   attr_reader :winning_team
 
@@ -39,6 +41,8 @@ module Codenames; class Game
     @id = self.class.games_created
     @channel_name = channel_name
     @players = []
+
+    @teams = [].freeze
 
     @started = false
     @start_time = nil
@@ -194,11 +198,6 @@ module Codenames; class Game
     }.to_h
   end
 
-  def teams
-    teams = (0...NUM_TEAMS).map { |i| @players.select { |p| p.on_team?(i) } }
-    teams.map { |players| players.map { |p| [p.user, p.role] }.to_h }
-  end
-
   # This is information everyone gets to see:
   # The list of unguessed words, and full info on guessed words.
   def public_words
@@ -265,6 +264,8 @@ module Codenames; class Game
       }
       @current_phase = :choose_hinter
     end
+
+    @teams = (0...NUM_TEAMS).map { |i| Team.new(i, @players.select { |p| p.on_team?(i) }) }.freeze
 
     # Assign words.
     words = possible_words.sample(WORDS_PER_GAME).map { |word| word.downcase.strip }
