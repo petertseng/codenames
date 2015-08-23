@@ -210,9 +210,9 @@ module Codenames; class Game
   end
 
   # Only hinters see identities of unguessed words.
-  def hinter_words
-    unguessed = @words.values.reject(&:revealed)
-    grouped = unguessed.group_by(&:role)
+  def hinter_words(exclude_revealed: true)
+    to_show = exclude_revealed ? @words.values.reject(&:revealed) : @words.values
+    grouped = to_show.group_by(&:role)
     grouped.map { |role, words| [role, words.map(&:word)] }.to_h
   end
 
