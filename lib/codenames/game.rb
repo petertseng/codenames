@@ -28,9 +28,11 @@ module Codenames; class Game
 
   class << self
     attr_accessor :games_created
+    attr_accessor :possible_words
   end
 
   @games_created = 0
+  @possible_words = {}
 
   def initialize(channel_name)
     self.class.games_created += 1
@@ -237,10 +239,11 @@ module Codenames; class Game
     [true, nil]
   end
 
-  def start(possible_words)
+  def start(possible_words = nil)
     return error(:wrong_time, :setup) if @started
+    possible_words ||= self.class.possible_words
 
-    return error(:not_enough_words, WORDS_PER_GAME) if possible_words.size < WORDS_PER_GAME
+    return error(:not_enough_words, WORDS_PER_GAME) if !possible_words || possible_words.size < WORDS_PER_GAME
 
     if @players.size == 3
       success, assignment_or_err = self.class.three_player_assignments(@players)
