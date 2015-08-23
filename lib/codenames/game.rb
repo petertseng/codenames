@@ -233,7 +233,7 @@ module Codenames; class Game
     player = find_player(user)
     return error(:not_in_game) unless player
     return error(:wrong_time, :setup) if @started
-    return error(:invalid_team) unless 0 <= team && team < NUM_TEAMS
+    return error(:invalid_team) unless team.nil? || (0 <= team && team < NUM_TEAMS)
     player.team_preference = team
     [true, nil]
   end
