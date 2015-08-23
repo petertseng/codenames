@@ -4,7 +4,8 @@ module Codenames; class Text
     hint: 'Spymaster',
   }
 
-  def self.for_error(sym, arg)
+  def self.for_error(error)
+    sym, arg = error
     case sym
 
     when :no_guesser; "both teams need at least one #{ROLES[:guess]}"
