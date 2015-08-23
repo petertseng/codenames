@@ -57,8 +57,6 @@ module Codenames; class Game
     @guesses_remaining = nil
     @guessed_this_turn = false
 
-    @hinters_chosen = Array.new(NUM_TEAMS, false)
-
     @winning_team = nil
   end
 
@@ -286,7 +284,7 @@ module Codenames; class Game
   def choose_hinter(user, random: false)
     player = find_player(user)
     return error(:not_in_game) unless player
-    return error(:already_chose_hinter) if @hinters_chosen[player.team]
+    return error(:already_chose_hinter) if @teams[player.team].picked_roles?
     return error(:wrong_time, :choose_hinter) unless @current_phase == :choose_hinter
 
     if random
@@ -296,7 +294,7 @@ module Codenames; class Game
       player_becomes_hinter(player)
     end
 
-    [true, @hinters_chosen.all?]
+    [true, @teams.all?(&:picked_roles?)]
   end
 
   GuessResult = Struct.new(:role, :correct, :turn_ends, :winner)
@@ -391,10 +389,9 @@ module Codenames; class Game
   end
 
   def player_becomes_hinter(player)
-    @hinters_chosen[player.team] = true
     player.role = :hint
     @players.select { |p| p.on_team?(player.team) && p != player }.each { |p| p.role = :guess }
-    if @hinters_chosen.all?
+    if @teams.all?(&:picked_roles?)
       @current_phase = :hint
       @turn_number = 1
     end
