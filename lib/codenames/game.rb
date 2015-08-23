@@ -361,7 +361,7 @@ module Codenames; class Game
     end
 
     @current_phase = :guess
-    @current_hint = word
+    @current_hint = word.freeze
     @guessed_this_turn = false
 
     [true, nil]
