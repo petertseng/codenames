@@ -356,6 +356,8 @@ module Codenames; class Game
 
     words_remaining = TEAM_WORDS[@current_team] - @scores[@current_team]
 
+    return error(:bad_number, words_remaining) if num.nil?
+
     if num.to_s.downcase == 'unlimited' || num == Float::INFINITY
       @guesses_remaining = Float::INFINITY
     elsif num.is_a?(String) && num.to_i.to_s != num
