@@ -1,12 +1,7 @@
+require_relative 'error'
 require_relative 'player'
 require_relative 'team'
 require_relative 'word'
-
-module Codenames
-  def self.error(sym, arg = nil)
-    [false, [sym, arg]]
-  end
-end
 
 module Codenames; class Game
   GAME_NAME = 'Codenames'.freeze
@@ -112,7 +107,7 @@ module Codenames; class Game
 
     NUM_TEAMS.times { |i|
       # Couldn't make teams!
-      return Codenames::error(:no_guesser, i) if by_team[i].size <= HINTERS_PER_TEAM
+      return [false, Error.new(:no_guesser, i)] if by_team[i].size <= HINTERS_PER_TEAM
     }
 
     teams = (0...NUM_TEAMS).map { |i| by_team[i] }.shuffle
@@ -153,7 +148,7 @@ module Codenames; class Game
 
     NUM_TEAMS.times { |i|
       # Sorry it doesn't really make sense if two players pick the same team in 3p.
-      return Codenames::error(:no_guesser, i) if by_team[i] && by_team[i].size >= 2
+      return [false, Error.new(:no_guesser, i)] if by_team[i] && by_team[i].size >= 2
     }
 
     if by_team[nil].size == 3
@@ -383,8 +378,8 @@ module Codenames; class Game
     @players.find { |p| p.user == user }
   end
 
-  def error(*args)
-    Codenames::error(*args)
+  def error(sym, arg = nil)
+    [false, Error.new(sym, arg)]
   end
 
   def check_role(user, phase)
