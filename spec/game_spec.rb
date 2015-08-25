@@ -50,7 +50,7 @@ RSpec.describe Codenames::Game do
       end
 
       it 'has no winners yet' do
-        expect(game.winning_team).to be_nil
+        expect(game.winning_team_id).to be_nil
         expect(game.winning_players).to be_nil
       end
     end
@@ -136,7 +136,7 @@ RSpec.describe Codenames::Game do
       end
 
       it 'has no winners yet' do
-        expect(game.winning_team).to be_nil
+        expect(game.winning_team_id).to be_nil
         expect(game.winning_players).to be_nil
       end
     end
@@ -268,6 +268,10 @@ RSpec.describe Codenames::Game do
       hinters.each { |hinter| game.choose_hinter(hinter) }
     }
 
+    it 'has a current team' do
+      expect(game.current_team.id).to be == game.current_team_id
+    end
+
     it 'disallows choosing hinters' do
       success, _ = game.choose_hinter(hinter)
       expect(success).to be false
@@ -364,6 +368,10 @@ RSpec.describe Codenames::Game do
       game.hint(hinters.first, 'hi', 1)
     }
 
+    it 'has a current team' do
+      expect(game.current_team.id).to be == game.current_team_id
+    end
+
     it 'disallows choosing hinters' do
       success, _ = game.choose_hinter(hinters.first)
       expect(success).to be false
@@ -398,7 +406,7 @@ RSpec.describe Codenames::Game do
       end
 
       it 'continues the turn' do
-        expect(game.current_team).to be == 0
+        expect(game.current_team_id).to be == 0
       end
 
       it 'expends a guess' do
@@ -412,12 +420,12 @@ RSpec.describe Codenames::Game do
 
       it 'ends the turn on a no-guess' do
         game.no_guess(guesser)
-        expect(game.current_team).to_not be == 0
+        expect(game.current_team_id).to_not be == 0
       end
 
       it 'ends the turn when guesses run out' do
         game.guess(guesser, game.hinter_words[0].last)
-        expect(game.current_team).to_not be == 0
+        expect(game.current_team_id).to_not be == 0
       end
     end
 
@@ -430,7 +438,7 @@ RSpec.describe Codenames::Game do
       end
 
       it 'ends the turn' do
-        expect(game.current_team).to_not be == 0
+        expect(game.current_team_id).to_not be == 0
       end
     end
 
@@ -443,7 +451,7 @@ RSpec.describe Codenames::Game do
       end
 
       it 'ends the turn' do
-        expect(game.current_team).to_not be == 0
+        expect(game.current_team_id).to_not be == 0
       end
     end
 
@@ -452,7 +460,7 @@ RSpec.describe Codenames::Game do
       before(:each) { game.guess(guesser, word_to_guess) }
 
       it 'makes the other team the winners' do
-        expect(game.winning_team).to be == 1
+        expect(game.winning_team_id).to be == 1
         expect(game.winning_players).to_not be_empty
       end
     end
@@ -471,9 +479,9 @@ RSpec.describe Codenames::Game do
     }
 
     it 'ends the game in victory' do
-      expect(game.winning_team).to be_nil
+      expect(game.winning_team_id).to be_nil
       game.hinter_words[0].each { |word| game.guess(guesser, word) }
-      expect(game.winning_team).to be == 0
+      expect(game.winning_team_id).to be == 0
       expect(game.winning_players).to_not be_empty
     end
   end

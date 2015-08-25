@@ -37,7 +37,7 @@ The Hinters submit hints with `Game#hint(User, String(word), Either[String(num),
 The Guessers submit guesses with `Game#guess(User, String(word)) -> [Boolean(success), Either[GuessResult, Error]]`.
 The Guessers may pass with `Game#no_guess(User) -> [Boolean(success), Error?]` once at least one guess has been submitted.
 
-The game is won when `Game#winning_team -> Integer?` or `Game#winning_players -> Array[User]?` return non-nil values.
+The game is won when `Game#winning_team_id -> Integer?` or `Game#winning_players -> Array[User]?` return non-nil values.
 If the game is not won, both functions return nil.
 It is always the case that either both return non-nil or both return nil.
 This is because it would not be sensible to have half-won games.

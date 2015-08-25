@@ -17,10 +17,10 @@ module Codenames; class Game
   NEUTRAL_WORDS = WORDS_PER_GAME - TOTAL_TEAM_WORDS - ASSASSIN_WORDS
 
   attr_reader :id, :channel_name, :started, :start_time, :turn_number
-  attr_reader :teams
-  attr_reader :current_team, :current_phase, :current_hint, :guesses_remaining
+  attr_reader :teams, :current_team_id
+  attr_reader :current_phase, :current_hint, :guesses_remaining
   attr_reader :guessed_this_turn
-  attr_reader :winning_team
+  attr_reader :winning_team_id
 
   alias :started? :started
   alias :guessed_this_turn? :guessed_this_turn
@@ -48,13 +48,13 @@ module Codenames; class Game
     @scores = Array.new(NUM_TEAMS, 0)
 
     @turn_number = 0
-    @current_team = 0
+    @current_team_id = 0
     @current_phase = :setup
     @current_hint = nil
     @guesses_remaining = nil
     @guessed_this_turn = false
 
-    @winning_team = nil
+    @winning_team_id = nil
   end
 
   #----------------------------------------------
@@ -188,6 +188,10 @@ module Codenames; class Game
   # Game state getters
   #----------------------------------------------
 
+  def current_team
+    @teams[@current_team_id]
+  end
+
   def role_of(user)
     player = find_player(user)
     player && player.role
@@ -216,14 +220,14 @@ module Codenames; class Game
     grouped.map { |role, words| [role, words.map(&:word)] }.to_h
   end
 
-  def other_team
-    1 - @current_team
+  def other_team_id
+    1 - @current_team_id
   end
 
   def winning_players
-    return nil unless @winning_team
+    return nil unless @winning_team_id
     # Eh, I guess I'll consider the guesser in a 3p to always win?
-    @players.select { |p| p.on_team?(@winning_team) }.map(&:user)
+    @players.select { |p| p.on_team?(@winning_team_id) }.map(&:user)
   end
 
   #----------------------------------------------
@@ -314,9 +318,9 @@ module Codenames; class Game
 
     case word_info.role
     when :assassin
-      @winning_team = other_team
+      @winning_team_id = other_team_id
       @current_phase = :game_over
-      return [true, GuessResult.new(:assassin, false, true, other_team)]
+      return [true, GuessResult.new(:assassin, false, true, other_team_id)]
     when :neutral
       stop_guess_phase
       return [true, GuessResult.new(:neutral, false, true, nil)]
@@ -324,14 +328,14 @@ module Codenames; class Game
       @scores[word_info.role] += 1
       someone_won = check_victory
       @guesses_remaining -= 1
-      turn_ends = word_info.role != @current_team || @guesses_remaining <= 0
+      turn_ends = word_info.role != @current_team_id || @guesses_remaining <= 0
       stop_guess_phase if turn_ends && !someone_won
 
       return [true, GuessResult.new(
         word_info.role,
-        word_info.role == @current_team,
+        word_info.role == @current_team_id,
         turn_ends,
-        someone_won ? @winning_team : nil,
+        someone_won ? @winning_team_id : nil,
       )]
     else; raise "Game #{@channel_name} word #{@word.word} has bad role #{word_info.role}"
     end
@@ -349,7 +353,7 @@ module Codenames; class Game
     result = check_role(user, :hint)
     return result unless result.first
 
-    words_remaining = TEAM_WORDS[@current_team] - @scores[@current_team]
+    words_remaining = TEAM_WORDS[@current_team_id] - @scores[@current_team_id]
 
     return error(:bad_number, words_remaining) if num.nil?
 
@@ -385,7 +389,7 @@ module Codenames; class Game
   def check_role(user, phase)
     player = find_player(user)
     return error(:not_in_game) unless player
-    return error(:wrong_team) unless player.on_team?(@current_team)
+    return error(:wrong_team) unless player.on_team?(@current_team_id)
     return error(:wrong_role, phase) unless player.role == phase
     return error(:wrong_time, phase) unless @current_phase == phase
 
@@ -405,7 +409,7 @@ module Codenames; class Game
     TEAM_WORDS.each_with_index { |goal, i|
       if @scores[i] >= goal
         @current_phase = :game_over
-        @winning_team = i
+        @winning_team_id = i
         return true
       end
     }
@@ -415,7 +419,7 @@ module Codenames; class Game
   def stop_guess_phase
     raise "Game #{@channel_name} not in guess phase" unless @current_phase == :guess
     @turn_number += 1
-    @current_team = other_team
+    @current_team_id = other_team_id
     @current_phase = :hint
     @current_hint = nil
     @guesses_remaining = nil
