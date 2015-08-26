@@ -300,8 +300,12 @@ RSpec.describe Codenames::Game do
     context 'with good hint' do
       before(:each) { game.hint(hinter, 'hi', 1) }
 
-      it 'remembers the hint' do
-        expect(game.current_hint).to be == 'hi'
+      it 'remembers the hint word' do
+        expect(game.current_hint_word).to be == 'hi'
+      end
+
+      it 'remembers the hint number' do
+        expect(game.current_hint_number).to be == 1
       end
 
       it 'is time to guess' do

@@ -18,7 +18,7 @@ module Codenames; class Game
 
   attr_reader :id, :channel_name, :started, :start_time, :turn_number
   attr_reader :teams, :current_team_id
-  attr_reader :current_phase, :current_hint, :guesses_remaining
+  attr_reader :current_phase, :current_hint_word, :current_hint_number, :guesses_remaining
   attr_reader :guessed_this_turn
   attr_reader :winning_team_id
 
@@ -50,7 +50,8 @@ module Codenames; class Game
     @turn_number = 0
     @current_team_id = 0
     @current_phase = :setup
-    @current_hint = nil
+    @current_hint_word = nil
+    @current_hint_number = nil
     @guesses_remaining = nil
     @guessed_this_turn = false
 
@@ -359,18 +360,21 @@ module Codenames; class Game
 
     if num.to_s.downcase == 'unlimited' || num == Float::INFINITY
       @guesses_remaining = Float::INFINITY
+      @current_hint_number = Float::INFINITY
     elsif num.is_a?(String) && num.to_i.to_s != num
       return error(:bad_number, words_remaining)
     elsif num.to_i == 0
       @guesses_remaining = Float::INFINITY
+      @current_hint_number = 0
     elsif (1..words_remaining).include?(num.to_i)
       @guesses_remaining = num.to_i + 1
+      @current_hint_number = num.to_i
     else
       return error(:bad_number, words_remaining)
     end
 
     @current_phase = :guess
-    @current_hint = word.freeze
+    @current_hint_word = word.freeze
     @guessed_this_turn = false
 
     [true, nil]
@@ -421,7 +425,8 @@ module Codenames; class Game
     @turn_number += 1
     @current_team_id = other_team_id
     @current_phase = :hint
-    @current_hint = nil
+    @current_hint_word = nil
+    @current_hint_number = nil
     @guesses_remaining = nil
   end
 end; end
