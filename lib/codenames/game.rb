@@ -70,26 +70,6 @@ module Codenames; class Game
     @players.map(&:user)
   end
 
-  def has_player?(user)
-    @players.any? { |p| p.user == user }
-  end
-
-  def add_player(user)
-    raise "Cannot add #{user} to #{@channel_name}: game in progress" if @started
-    return false if has_player?(user)
-    new_player = Player.new(user)
-    @players << new_player
-    true
-  end
-
-  def remove_player(user)
-    raise "Cannot remove #{user} from #{@channel_name}: game in progress" if @started
-    player = find_player(user)
-    return false unless player
-    @players.delete(player)
-    true
-  end
-
   def replace_player(replaced, replacing)
     player = find_player(replaced)
     return false unless player
@@ -101,8 +81,8 @@ module Codenames; class Game
   # Assign players to teams
   #----------------------------------------------
 
-  def self.assignments(players_to_assign)
-    by_team = players_to_assign.group_by(&:team_preference)
+  # by_team: Hash[team => [Player]]
+  def self.assignments(by_team)
     NUM_TEAMS.times { |i| by_team[i] ||= [] }
     distribute(by_team[nil] || [], among: (0...NUM_TEAMS).map { |i| by_team[i] })
 
@@ -144,9 +124,8 @@ module Codenames; class Game
     end
   end
 
-  def self.three_player_assignments(players_to_assign)
-    by_team = players_to_assign.group_by(&:team_preference)
-
+  # by_team: Hash[team => [Player]]
+  def self.three_player_assignments(by_team)
     NUM_TEAMS.times { |i|
       # Sorry it doesn't really make sense if two players pick the same team in 3p.
       return [false, Error.new(:no_guesser, i)] if by_team[i] && by_team[i].size >= 2
@@ -154,7 +133,7 @@ module Codenames; class Game
 
     if by_team[nil].size == 3
       # If everyone picked no team, randomly pick it.
-      players_to_assign.shuffle!
+      players_to_assign = by_team[nil].dup.shuffle
       return [true, {
         hint: players_to_assign[0..1],
         guess: players_to_assign[2],
@@ -198,12 +177,6 @@ module Codenames; class Game
     player && player.role
   end
 
-  def team_preferences
-    @players.group_by(&:team_preference).map { |team, players|
-      [team, players.map(&:user)]
-    }.to_h
-  end
-
   # This is information everyone gets to see:
   # The list of unguessed words, and full info on guessed words.
   def public_words
@@ -235,23 +208,22 @@ module Codenames; class Game
   # Game state changers
   #----------------------------------------------
 
-  def prefer_team(user, team)
-    player = find_player(user)
-    return error(:not_in_game) unless player
-    return error(:wrong_time, :setup) if @started
-    return error(:invalid_team) unless team.nil? || (0 <= team && team < NUM_TEAMS)
-    player.team_preference = team
-    [true, nil]
-  end
-
-  def start(possible_words = nil)
+  # player_prefs: Hash[User => team_preference]
+  def start(players, possible_words = nil)
     return error(:wrong_time, :setup) if @started
     possible_words ||= self.class.possible_words
 
     return error(:not_enough_words, WORDS_PER_GAME) if !possible_words || possible_words.size < WORDS_PER_GAME
 
+    preferences = players.each_with_object(Hash.new { |h, k| h[k] = [] }) { |(user, team), prefs|
+      return error(:invalid_team) unless team.nil? || (0 <= team && team < NUM_TEAMS)
+      prefs[team] << Player.new(user)
+    }
+
+    @players = preferences.values.flatten
+
     if @players.size == 3
-      success, assignment_or_err = self.class.three_player_assignments(@players)
+      success, assignment_or_err = self.class.three_player_assignments(preferences)
       return [success, assignment_or_err] unless success
       assignment = assignment_or_err
       assignment[:hint].each_with_index { |player, i|
@@ -264,7 +236,7 @@ module Codenames; class Game
       @turn_number = 1
       @current_phase = :hint
     else
-      success, assignment_or_err = self.class.assignments(@players)
+      success, assignment_or_err = self.class.assignments(preferences)
       return [success, assignment_or_err] unless success
       assignment_or_err.each_with_index { |team_players, i|
         team_players.each { |p| p.team = i }

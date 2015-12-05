@@ -8,10 +8,9 @@ This document uses the generic name "Hinter" for the role giving the hints and "
 
 # Basic Usage
 
-Create an instance of `Codenames::Game` and use `Game#add_player(User)` to add some players.
-`User` can be any type that is convenient, such as a string or any other form of user identifier.
+Create an instance of `Codenames::Game`.
 
-The list of words may be set using one of two ways: `Codenames::Game.possible_words = words`, or as the first (and only) argument to `Game#start`.
+The list of words may be set using one of two ways: `Codenames::Game.possible_words = words`, or as an optional second argument to `Game#start`.
 If both ways are used, the latter takes precedence.
 The list of words needs to respond to `#size` (to verify that there are at least as many as required in one Codenames game) and `#sample` to randomly select the words for a single game.
 For example, an `Array` will do.
@@ -21,12 +20,12 @@ The second element may vary as follows:
 If the action failed, it is always the case that an `Error` is returned, and a sensible string describing what went wrong can be obtained with `Error#to_s -> String`.
 If the action succeeded, some functions return extra data regarding the result of the action, while some other functions simply return nil as the extra data, as they have no extra information to impart.
 
-Before the game starts, players in the game may specify team preferences with `Game#prefer_team(User, Integer) -> [Boolean(success), Error?]`.
-Players who specify the same team preference will be on the same team.
+`Game#start(Hash[User -> Integer?], Array[String(word)]?) -> [Boolean(success), Error?]` is called to start the game.
+The keys of the hash are the players who will be in the game.
+`User` can be any type that is convenient, such as a string or any other form of user identifier.
+The corresponding value for each player can be 0 or 1 to indicate a preference for one of two teams, or nil to indicate no preference.
 Players who do not specify a preference are placed on teams to balance the team sizes as much as possible, or randomly placed if the teams are already balanced.
 Which team goes first is randomly decided.
-
-Once `Game#start(Array[String(word)]?) -> [Boolean(success), Error?]` is called, the players are placed onto teams.
 At this point, teams may be queried with `Game#teams -> Array[Team]` and `Team#users`.
 
 If playing a three-player game, which players are Hinters will have already been decided, as there is only one possible Hinter for each team (the Guesser plays for both teams).

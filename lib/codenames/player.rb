@@ -5,11 +5,9 @@
 module Codenames; class Player
   attr_accessor :user
   attr_reader :team, :role
-  attr_accessor :team_preference
 
   def initialize(user)
     @user = user
-    @team_preference = nil
     @role = nil
     @team = nil
   end
