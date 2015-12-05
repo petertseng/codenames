@@ -8,25 +8,24 @@ This document uses the generic name "Hinter" for the role giving the hints and "
 
 # Basic Usage
 
-Create an instance of `Codenames::Game`.
+To create a game, call `Codenames::Game.new(channel_name: String, players: Hash[User => Integer?], words: Array[String]?)`.
+The keys of the `players` hash are the players who will be in the game.
+`User` can be any type that is convenient, such as a string or any other form of user identifier.
+The corresponding value for each player can be 0 or 1 to indicate a preference for one of two teams, or nil to indicate no preference.
+Players who do not specify a preference are placed on teams to balance the team sizes as much as possible, or randomly placed if the teams are already balanced.
+Which team goes first is randomly decided.
 
-The list of words may be set using one of two ways: `Codenames::Game.possible_words = words`, or as an optional second argument to `Game#start`.
+The list of words may be set using one of two ways: `Codenames::Game.possible_words = words`, or as the optional second argument to `Game#initialize`.
 If both ways are used, the latter takes precedence.
 The list of words needs to respond to `#size` (to verify that there are at least as many as required in one Codenames game) and `#sample` to randomly select the words for a single game.
 For example, an `Array` will do.
+
+Teams may be queried with `Game#teams -> Array[Team]` and `Team#users`.
 
 Functions performing game actions generally return a two-element array where the first element is a boolean to indicate whether the action was successful.
 The second element may vary as follows:
 If the action failed, it is always the case that an `Error` is returned, and a sensible string describing what went wrong can be obtained with `Error#to_s -> String`.
 If the action succeeded, some functions return extra data regarding the result of the action, while some other functions simply return nil as the extra data, as they have no extra information to impart.
-
-`Game#start(Hash[User -> Integer?], Array[String(word)]?) -> [Boolean(success), Error?]` is called to start the game.
-The keys of the hash are the players who will be in the game.
-`User` can be any type that is convenient, such as a string or any other form of user identifier.
-The corresponding value for each player can be 0 or 1 to indicate a preference for one of two teams, or nil to indicate no preference.
-Players who do not specify a preference are placed on teams to balance the team sizes as much as possible, or randomly placed if the teams are already balanced.
-Which team goes first is randomly decided.
-At this point, teams may be queried with `Game#teams -> Array[Team]` and `Team#users`.
 
 If playing a three-player game, which players are Hinters will have already been decided, as there is only one possible Hinter for each team (the Guesser plays for both teams).
 Otherwise, the Hinter for each team must be chosen.

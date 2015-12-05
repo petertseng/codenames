@@ -17,13 +17,11 @@ module Codenames; class Game
   TOTAL_TEAM_WORDS = TEAM_WORDS.inject(0, :+)
   NEUTRAL_WORDS = WORDS_PER_GAME - TOTAL_TEAM_WORDS - ASSASSIN_WORDS
 
-  attr_reader :id, :channel_name, :started, :start_time, :turn_number
+  attr_reader :id, :channel_name, :turn_number
   attr_reader :teams, :current_team_id
   attr_reader :current_phase
   attr_reader :current_hint, :hints
   attr_reader :winning_team_id
-
-  alias :started? :started
 
   class << self
     attr_accessor :games_created
@@ -33,27 +31,64 @@ module Codenames; class Game
   @games_created = 0
   @possible_words = {}
 
-  def initialize(channel_name)
+  # player_prefs: Hash[User => team_preference]
+  def initialize(channel_name, players, possible_words = nil)
     self.class.games_created += 1
     @id = self.class.games_created
     @channel_name = channel_name
-    @players = []
 
-    @teams = [].freeze
-
-    @started = false
-    @start_time = nil
-
-    @words = {}
     @scores = Array.new(NUM_TEAMS, 0)
 
     @turn_number = 0
     @current_team_id = 0
-    @current_phase = :setup
     @hints = []
     @current_hint = nil
 
     @winning_team_id = nil
+
+    possible_words ||= self.class.possible_words
+    raise Error.new(:not_enough_words, WORDS_PER_GAME) if !possible_words || possible_words.size < WORDS_PER_GAME
+
+    preferences = players.each_with_object(Hash.new { |h, k| h[k] = [] }) { |(user, team), prefs|
+      raise Error.new(:invalid_team, team) unless team.nil? || (0 <= team && team < NUM_TEAMS)
+      prefs[team] << Player.new(user)
+    }
+
+    @players = preferences.values.flatten
+
+    if @players.size == 3
+      success, assignment_or_err = self.class.three_player_assignments(preferences)
+      raise assignment_or_err unless success
+      assignment = assignment_or_err
+      assignment[:hint].each_with_index { |player, i|
+        player.role = :hint
+        player.team = i
+      }
+      assignment[:guess].role = :guess
+      assignment[:guess].team = :both
+      # They can skip the hinter selection.
+      @turn_number = 1
+      @current_phase = :hint
+    else
+      success, assignment_or_err = self.class.assignments(preferences)
+      raise assignment_or_err unless success
+      assignment_or_err.each_with_index { |team_players, i|
+        team_players.each { |p| p.team = i }
+      }
+      @current_phase = :choose_hinter
+    end
+
+    @teams = (0...NUM_TEAMS).map { |i| Team.new(i, @players.select { |p| p.on_team?(i) }) }.freeze
+
+    # Assign words.
+    words = possible_words.sample(WORDS_PER_GAME).map { |word| word.downcase.strip }
+    @words = {}
+    words.pop(ASSASSIN_WORDS).each { |word| @words[word] = Word.new(word, :assassin) }
+    TEAM_WORDS.each_with_index { |n, i|
+      words.pop(n).each { |word| @words[word] = Word.new(word, i) }
+    }
+    words.each { |word| @words[word] = Word.new(word, :neutral) }
+    @words.freeze
   end
 
   #----------------------------------------------
@@ -221,57 +256,6 @@ module Codenames; class Game
   #----------------------------------------------
   # Game state changers
   #----------------------------------------------
-
-  # player_prefs: Hash[User => team_preference]
-  def start(players, possible_words = nil)
-    return error(:wrong_time, :setup) if @started
-    possible_words ||= self.class.possible_words
-
-    return error(:not_enough_words, WORDS_PER_GAME) if !possible_words || possible_words.size < WORDS_PER_GAME
-
-    preferences = players.each_with_object(Hash.new { |h, k| h[k] = [] }) { |(user, team), prefs|
-      return error(:invalid_team) unless team.nil? || (0 <= team && team < NUM_TEAMS)
-      prefs[team] << Player.new(user)
-    }
-
-    @players = preferences.values.flatten
-
-    if @players.size == 3
-      success, assignment_or_err = self.class.three_player_assignments(preferences)
-      return [success, assignment_or_err] unless success
-      assignment = assignment_or_err
-      assignment[:hint].each_with_index { |player, i|
-        player.role = :hint
-        player.team = i
-      }
-      assignment[:guess].role = :guess
-      assignment[:guess].team = :both
-      # They can skip the hinter selection.
-      @turn_number = 1
-      @current_phase = :hint
-    else
-      success, assignment_or_err = self.class.assignments(preferences)
-      return [success, assignment_or_err] unless success
-      assignment_or_err.each_with_index { |team_players, i|
-        team_players.each { |p| p.team = i }
-      }
-      @current_phase = :choose_hinter
-    end
-
-    @teams = (0...NUM_TEAMS).map { |i| Team.new(i, @players.select { |p| p.on_team?(i) }) }.freeze
-
-    # Assign words.
-    words = possible_words.sample(WORDS_PER_GAME).map { |word| word.downcase.strip }
-    words.pop(ASSASSIN_WORDS).each { |word| @words[word] = Word.new(word, :assassin) }
-    TEAM_WORDS.each_with_index { |n, i|
-      words.pop(n).each { |word| @words[word] = Word.new(word, i) }
-    }
-    words.each { |word| @words[word] = Word.new(word, :neutral) }
-
-    @started = true
-    [true, nil]
-  end
-  alias :start_game :start
 
   # Returns [false, error_sym] or [true, Boolean(everyone_chose?)]
   def choose_hinter(user, random: false)

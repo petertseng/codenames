@@ -4,7 +4,6 @@ require 'codenames/game'
 
 RSpec.describe Codenames::Game do
   let(:example_words) { (0...Codenames::Game::WORDS_PER_GAME).map { |i| "word#{i}" } }
-  let(:game) { Codenames::Game.new('test') }
   let(:three_player_prefs) { {'p1' => nil, 'p2' => nil, 'p3' => nil} }
   let(:four_player_prefs) { {'p1' => nil, 'p2' => nil, 'p3' => nil, 'p4' => nil} }
 
@@ -40,7 +39,7 @@ RSpec.describe Codenames::Game do
     shared_examples 'three-player game with one player expressing a preference' do
       let(:preferring_user) { 'p1' }
       let(:prefs) { three_player_prefs.merge(preferring_user => preferred_team) }
-      before(:each) { game.start(prefs, example_words) }
+      let(:game) { Codenames::Game.new('test', prefs, example_words) }
 
       it_should_behave_like 'a three-player game with correct team assignments'
 
@@ -52,7 +51,7 @@ RSpec.describe Codenames::Game do
     end
 
     context 'with no team preferences' do
-      before(:each) { game.start(three_player_prefs, example_words) }
+      let(:game) { Codenames::Game.new('test', three_player_prefs, example_words) }
 
       it_should_behave_like 'a three-player game with correct team assignments'
     end
@@ -69,7 +68,7 @@ RSpec.describe Codenames::Game do
 
     context 'with two players expressing opposite preferences' do
       let(:prefs) { three_player_prefs.merge('p1' => 0, 'p2' => 1) }
-      before(:each) { game.start(prefs, example_words) }
+      let(:game) { Codenames::Game.new('test', prefs, example_words) }
 
       it_should_behave_like 'a three-player game with correct team assignments'
 
@@ -85,8 +84,7 @@ RSpec.describe Codenames::Game do
       let(:prefs) { three_player_prefs.merge('p1' => 0, 'p2' => 0) }
 
       it 'does not start the game' do
-        success, _ = game.start(prefs, example_words)
-        expect(success).to be false
+        expect { Codenames::Game.new('test', prefs, example_words) }.to raise_exception(Codenames::Error)
       end
     end
   end
@@ -115,7 +113,7 @@ RSpec.describe Codenames::Game do
     shared_examples 'four-player game with one player expressing a preference' do
       let(:preferring_user) { 'p1' }
       let(:prefs) { four_player_prefs.merge(preferring_user => preferred_team) }
-      before(:each) { game.start(prefs, example_words) }
+      let(:game) { Codenames::Game.new('test', prefs, example_words) }
 
       it_should_behave_like 'a four-player game with correct team assignments'
 
@@ -123,7 +121,7 @@ RSpec.describe Codenames::Game do
     end
 
     context 'with no team preferences' do
-      before(:each) { game.start(four_player_prefs, example_words) }
+      let(:game) { Codenames::Game.new('test', four_player_prefs, example_words) }
 
       it_should_behave_like 'a four-player game with correct team assignments'
     end
@@ -142,14 +140,13 @@ RSpec.describe Codenames::Game do
       let(:prefs) { four_player_prefs.merge('p1' => 0, 'p2' => 0, 'p3' => 0) }
 
       it 'does not start the game' do
-        success, _ = game.start(prefs, example_words)
-        expect(success).to be false
+        expect { Codenames::Game.new('test', prefs, example_words) }.to raise_exception(Codenames::Error)
       end
     end
   end
 
   context 'when choosing hinters' do
-    before(:each) { game.start(four_player_prefs, example_words) }
+    let(:game) { Codenames::Game.new('test', four_player_prefs, example_words) }
     let(:hinters) { game.teams.map(&:users).map(&:first) }
 
     it 'disallows hints' do
@@ -223,10 +220,8 @@ RSpec.describe Codenames::Game do
     let(:hinters) { game.teams.map(&:users).map(&:first) }
     let(:hinter) { hinters.first }
     let(:guessers) { game.teams.map(&:users).map(&:last) }
-    before(:each) {
-      game.start(four_player_prefs, example_words)
-      hinters.each { |hinter| game.choose_hinter(hinter) }
-    }
+    let(:game) { Codenames::Game.new('test', four_player_prefs, example_words) }
+    before(:each) { hinters.each { |hinter| game.choose_hinter(hinter) } }
 
     it 'has a current team' do
       expect(game.current_team.id).to be == game.current_team_id
@@ -325,8 +320,8 @@ RSpec.describe Codenames::Game do
     let(:hinters) { game.teams.map(&:users).map(&:first) }
     let(:guessers) { game.teams.map(&:users).map(&:last) }
     let(:guesser) { guessers.first }
+    let(:game) { Codenames::Game.new('test', four_player_prefs, example_words) }
     before(:each) {
-      game.start(four_player_prefs, example_words)
       hinters.each { |hinter| game.choose_hinter(hinter) }
       game.hint(hinters.first, 'hi', 1)
     }
@@ -433,8 +428,8 @@ RSpec.describe Codenames::Game do
     let(:hinters) { game.teams.map(&:users).map(&:first) }
     let(:guessers) { game.teams.map(&:users).map(&:last) }
     let(:guesser) { guessers.first }
+    let(:game) { Codenames::Game.new('test', four_player_prefs, example_words) }
     before(:each) {
-      game.start(four_player_prefs, example_words)
       hinters.each { |hinter| game.choose_hinter(hinter) }
       game.hint(hinters.first, 'hi', 0)
       game.hinter_words[0].drop(1).each { |word| game.guess(guesser, word) }
