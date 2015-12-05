@@ -1,4 +1,5 @@
 require_relative 'error'
+require_relative 'hint'
 require_relative 'player'
 require_relative 'team'
 require_relative 'word'
@@ -18,12 +19,11 @@ module Codenames; class Game
 
   attr_reader :id, :channel_name, :started, :start_time, :turn_number
   attr_reader :teams, :current_team_id
-  attr_reader :current_phase, :current_hint_word, :current_hint_number, :guesses_remaining
-  attr_reader :guessed_this_turn
+  attr_reader :current_phase
+  attr_reader :current_hint, :hints
   attr_reader :winning_team_id
 
   alias :started? :started
-  alias :guessed_this_turn? :guessed_this_turn
 
   class << self
     attr_accessor :games_created
@@ -50,10 +50,8 @@ module Codenames; class Game
     @turn_number = 0
     @current_team_id = 0
     @current_phase = :setup
-    @current_hint_word = nil
-    @current_hint_number = nil
-    @guesses_remaining = nil
-    @guessed_this_turn = false
+    @hints = []
+    @current_hint = nil
 
     @winning_team_id = nil
   end
@@ -204,6 +202,22 @@ module Codenames; class Game
     @players.select { |p| p.on_team?(@winning_team_id) }.map(&:user)
   end
 
+  def current_hint_word
+    @current_hint && @current_hint.word
+  end
+
+  def current_hint_number
+    @current_hint && @current_hint.number
+  end
+
+  def guesses_remaining
+    @current_hint && @current_hint.guesses_remaining
+  end
+
+  def guessed_this_turn?
+    @current_hint && @current_hint.guessed_this_turn?
+  end
+
   #----------------------------------------------
   # Game state changers
   #----------------------------------------------
@@ -287,7 +301,7 @@ module Codenames; class Game
     return error(:word_already_guessed) if word_info.revealed?
 
     word_info.reveal!
-    @guessed_this_turn = true
+    @current_hint.guess(word, word_info.role)
 
     case word_info.role
     when :assassin
@@ -300,8 +314,7 @@ module Codenames; class Game
     when Integer
       @scores[word_info.role] += 1
       someone_won = check_victory
-      @guesses_remaining -= 1
-      turn_ends = word_info.role != @current_team_id || @guesses_remaining <= 0
+      turn_ends = word_info.role != @current_team_id || guesses_remaining <= 0
       stop_guess_phase if turn_ends && !someone_won
 
       return [true, GuessResult.new(
@@ -317,7 +330,7 @@ module Codenames; class Game
   def no_guess(user)
     result = check_role(user, :guess)
     return result unless result.first
-    return error(:must_guess) unless @guessed_this_turn
+    return error(:must_guess) unless guessed_this_turn?
     stop_guess_phase
     [true, nil]
   end
@@ -331,23 +344,20 @@ module Codenames; class Game
     return error(:bad_number, words_remaining) if num.nil?
 
     if num.to_s.downcase == 'unlimited' || num == Float::INFINITY
-      @guesses_remaining = Float::INFINITY
-      @current_hint_number = Float::INFINITY
+      hint_number = Float::INFINITY
     elsif num.is_a?(String) && num.to_i.to_s != num
       return error(:bad_number, words_remaining)
     elsif num.to_i == 0
-      @guesses_remaining = Float::INFINITY
-      @current_hint_number = 0
+      hint_number = 0
     elsif (1..words_remaining).include?(num.to_i)
-      @guesses_remaining = num.to_i + 1
-      @current_hint_number = num.to_i
+      hint_number = num.to_i
     else
       return error(:bad_number, words_remaining)
     end
 
+    @current_hint = Hint.new(@current_team_id, word, hint_number)
+    @hints << @current_hint
     @current_phase = :guess
-    @current_hint_word = word.freeze
-    @guessed_this_turn = false
 
     [true, nil]
   end
@@ -397,8 +407,6 @@ module Codenames; class Game
     @turn_number += 1
     @current_team_id = other_team_id
     @current_phase = :hint
-    @current_hint_word = nil
-    @current_hint_number = nil
-    @guesses_remaining = nil
+    @current_hint = nil
   end
 end; end
