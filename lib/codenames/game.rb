@@ -266,8 +266,8 @@ module Codenames; class Game
     else
       success, assignment_or_err = self.class.assignments(@players)
       return [success, assignment_or_err] unless success
-      assignment_or_err.each_with_index { |players, i|
-        players.each { |p| p.team = i }
+      assignment_or_err.each_with_index { |team_players, i|
+        team_players.each { |p| p.team = i }
       }
       @current_phase = :choose_hinter
     end
