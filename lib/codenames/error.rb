@@ -1,4 +1,4 @@
-module Codenames; class Error
+module Codenames; class Error < StandardError
   def initialize(sym, arg)
     @sym = sym
     @arg = arg
