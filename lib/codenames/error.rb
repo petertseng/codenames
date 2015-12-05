@@ -11,7 +11,7 @@ module Codenames; class Error < StandardError
 
     when :not_in_game; 'you are not in the game'
 
-    when :invalid_team; 'that team is invalid'
+    when :invalid_team; "team #{@arg} is invalid"
 
     when :already_chose_hinter; "your team already has a #{Text::ROLES[:hint]}"
 
