@@ -104,7 +104,7 @@ module Codenames; class Game
   def self.assignments(players_to_assign)
     by_team = players_to_assign.group_by(&:team_preference)
     NUM_TEAMS.times { |i| by_team[i] ||= [] }
-    distribute(by_team[nil], among: (0...NUM_TEAMS).map { |i| by_team[i] })
+    distribute(by_team[nil] || [], among: (0...NUM_TEAMS).map { |i| by_team[i] })
 
     NUM_TEAMS.times { |i|
       # Couldn't make teams!
