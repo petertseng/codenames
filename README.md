@@ -4,6 +4,8 @@ This is a Ruby implementation of game logic for "Codenames" by Vlaada Chvátil
 
 https://boardgamegeek.com/boardgame/178900
 
+[![Build Status](https://travis-ci.org/petertseng/codenames.svg?branch=master)](https://travis-ci.org/petertseng/codenames)
+
 This document uses the generic name "Hinter" for the role giving the hints and "Guesser" for the role trying to guess words (these are "Spymaster" and "Field Agent" respectively in the published version of the game).
 
 # Basic Usage
